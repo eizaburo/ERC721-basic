@@ -1,96 +1,90 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract MyToken is ERC721, Ownable, IERC721Enumerable {
+contract MyToken is
+    ERC721,
+    ERC721Enumerable,
+    ERC721URIStorage,
+    Pausable,
+    Ownable,
+    ERC721Burnable
+{
+    using Counters for Counters.Counter;
     using Strings for uint256;
-    //optional
-    mapping(uint256 => string) private _tokenURIs;
-    //base uri
-    string private _baseURIextended;
 
-    // constructor(string memory _name, string memory _symbol)
-    //     ERC721(_name, _symbol)
-    // {}
+    Counters.Counter private _tokenIdCounter;
 
-    constructor()
-        ERC721("MyNFToken", "MNT")
-    {}
+    constructor() ERC721("MyToken", "MTK") {}
 
-
-    function setBaseURI(string memory baseURI_) external onlyOwner {
-        _baseURIextended = baseURI_;
+    function pause() public onlyOwner {
+        _pause();
     }
 
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI)
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function safeMint(address to) public onlyOwner {
+        _safeMint(to, _tokenIdCounter.current());
+        _tokenIdCounter.increment();
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override(ERC721, ERC721Enumerable) whenNotPaused {
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    // The following functions are overrides required by Solidity.
+
+    function _burn(uint256 tokenId)
         internal
-        virtual
+        override(ERC721, ERC721URIStorage)
     {
-        require(
-            _exists(tokenId),
-            "ERC721Metadata: URI set of nonexistent token"
-        );
-        _tokenURIs[tokenId] = _tokenURI;
-    }
-
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseURIextended;
+        super._burn(tokenId);
     }
 
     function tokenURI(uint256 tokenId)
         public
         view
-        virtual
-        override
+        override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
-        require(
-            _exists(tokenId),
-            "ERC721Metadata: URI query for nonexistent token"
-        );
-
-        string memory _tokenURI = _tokenURIs[tokenId];
-        string memory base = _baseURI();
-
-        //baseURIがない場合
-        if (bytes(base).length == 0) {
-            return _tokenURI;
-        }
-
-        //baseURI + tokenURIがある
-        if (bytes(_tokenURI).length > 0) {
-            return string(abi.encodePacked(base, _tokenURI));
-        }
-
-        //tokenURIがない
-        return string(abi.encodePacked(base, tokenId.toString()));
+        return super.tokenURI(tokenId);
     }
 
-    function mint(
-        address _to,
-        uint256 _tokenId,
-        string memory tokenURI_
-    ) external onlyOwner {
-        _mint(_to, _tokenId);
-        _setTokenURI(_tokenId, tokenURI_);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 
-    function totalSupply() external view override returns (uint256) {
-      return 1;
+    function mintNFT(address owner, string memory _tokenURI)
+        public
+        returns (uint256)
+    {
+        uint256 newId = _tokenIdCounter.current();
+        _mint(owner, newId);
+        _setTokenURI(newId, string(abi.encodePacked(_tokenURI,newId.toString())));
+
+        _tokenIdCounter.increment();
+
+        return newId;
     }
 
-    function tokenOfOwnerByIndex(address owner, uint256 index) public view override returns (uint256) {
-        return 3;
-    }
-
-    function tokenByIndex(uint256 index) external view  override returns (uint256) {
-      // You need update this logic.
-      // ...
-      return 5;
-    }
-
+    
 }
