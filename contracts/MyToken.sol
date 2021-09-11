@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol"; //文字列結合のために追加
 
 contract MyToken is
     ERC721,
@@ -72,13 +72,15 @@ contract MyToken is
     {
         return super.supportsInterface(interfaceId);
     }
-
+    
+    //mintだけは実装する必要がある
     function mintNFT(address owner, string memory _tokenURI)
         public
         returns (uint256)
     {
         uint256 newId = _tokenIdCounter.current();
         _mint(owner, newId);
+        // uri + idとして文字列結合させている
         _setTokenURI(newId, string(abi.encodePacked(_tokenURI,newId.toString())));
 
         _tokenIdCounter.increment();
